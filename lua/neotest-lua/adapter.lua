@@ -1,7 +1,7 @@
 local nio = require("nio")
 local lib = require("neotest.lib")
-local pytest = require("neotest-python.pytest")
-local base = require("neotest-python.base")
+local pytest = require("neotest-lua.pytest")
+local base = require("neotest-lua.base")
 
 ---@class neotest-python._AdapterConfig
 ---@field dap_args? table
