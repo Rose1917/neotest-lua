@@ -5,12 +5,13 @@ local Path = require("plenary.path")
 local M = {}
 
 function M.is_test_file(file_path)
-  if not vim.endswith(file_path, ".py") then
+  -- only check lua files
+  if not vim.endswith(file_path, ".lua") then
     return false
   end
   local elems = vim.split(file_path, Path.path.sep)
   local file_name = elems[#elems]
-  return vim.startswith(file_name, "test_") or vim.endswith(file_name, "_test.py")
+  return vim.startswith(file_name, "test_") or vim.endswith(file_name, "_test.lua")
 end
 
 M.module_exists = function(module, python_command)
