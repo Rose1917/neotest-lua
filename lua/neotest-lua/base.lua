@@ -123,7 +123,7 @@ M.treesitter_queries = [[
 
 
 M.get_root =
-    lib.files.match_root_pattern("pyproject.toml", "setup.cfg", "mypy.ini", "pytest.ini", "setup.py")
+    lib.files.match_root_pattern("pyproject.toml", "setup.cfg", "mypy.ini", "pytest.ini", "setup.py", "luahelper.json")
 
 ---@return string
 function M.get_script_path()
