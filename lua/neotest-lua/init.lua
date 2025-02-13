@@ -1,5 +1,5 @@
-local base = require("neotest-python.base")
-local create_adapter = require("neotest-python.adapter")
+local base = require("neotest-lua.base")
+local create_adapter = require("neotest-lua.adapter")
 
 ---@class neotest-python.AdapterConfig
 ---@field dap? table
