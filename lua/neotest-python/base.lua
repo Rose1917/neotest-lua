@@ -80,34 +80,46 @@ function M.get_python_command(root)
 end
 
 M.treesitter_queries = [[
-    ;; Match undecorated functions
-    ((function_definition
-      name: (identifier) @test.name)
-      (#match? @test.name "^test"))
-      @test.definition
+    ;; match unit_test_functions
+    (function_declaration
+     name: (method_index_expression
+    table: (identifier) @table
+    index: (property_identifier) @method)
+    parameters: (parameters) @params
+    body: (block) @body)
+    (#eq? @table "unit_test_functions")
+    (#match? @method "^test_")
 
-    ;; Match decorated function, including decorators in definition
-    (decorated_definition
-      ((function_definition
-        name: (identifier) @test.name)
-        (#match? @test.name "^test")))
-        @test.definition
-
-    ;; Match decorated classes, including decorators in definition
-    (decorated_definition
-      (class_definition
-       name: (identifier) @namespace.name))
-      @namespace.definition
-
-    ;; Match undecorated classes: namespaces nest so #not-has-parent is used
-    ;; to ensure each namespace is annotated only once
-    (
-     (class_definition
-      name: (identifier) @namespace.name)
-      @namespace.definition
-     (#not-has-parent? @namespace.definition decorated_definition)
-    )
   ]]
+
+    --   ;; Match undecorated functions
+    -- ((function_definition
+    --   name: (identifier) @test.name)
+    --   (#match? @test.name "^test"))
+    --   @test.definition
+    --
+    -- ;; Match decorated function, including decorators in definition
+    -- (decorated_definition
+    --   ((function_definition
+    --     name: (identifier) @test.name)
+    --     (#match? @test.name "^test")))
+    --     @test.definition
+    --
+    -- ;; Match decorated classes, including decorators in definition
+    -- (decorated_definition
+    --   (class_definition
+    --    name: (identifier) @namespace.name))
+    --   @namespace.definition
+    --
+    -- ;; Match undecorated classes: namespaces nest so #not-has-parent is used
+    -- ;; to ensure each namespace is annotated only once
+    -- (
+    --  (class_definition
+    --   name: (identifier) @namespace.name)
+    --   @namespace.definition
+    --  (#not-has-parent? @namespace.definition decorated_definition)
+    -- )
+
 
 M.get_root =
     lib.files.match_root_pattern("pyproject.toml", "setup.cfg", "mypy.ini", "pytest.ini", "setup.py")

@@ -5,8 +5,8 @@ set -e
 PYTHON_DIRS=("neotest_python")
 
 if [[ $1 == "-w" ]]; then
-  black "${PYTHON_DIRS[@]}"
-  isort "${PYTHON_DIRS[@]}"
+  black "${PYTHON_DIRS[@]}" # 用black命令格式化代码
+  isort "${PYTHON_DIRS[@]}" # 
   autoflake --remove-unused-variables --remove-all-unused-imports --ignore-init-module-imports --remove-duplicate-keys --recursive -i "${PYTHON_DIRS[@]}"
   stylua lua
 else

@@ -52,7 +52,7 @@ return function(config)
 
   ---@type neotest.Adapter
   return {
-    name = "neotest-python",
+    name = "neotest-lua",
     root = base.get_root,
     filter_dir = function(name)
       return name ~= "venv"
