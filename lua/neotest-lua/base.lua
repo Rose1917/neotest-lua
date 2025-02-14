@@ -83,13 +83,10 @@ end
 M.treesitter_queries = [[
     ;; match unit_test_functions
     (function_declaration
-     name: (method_index_expression
-    table: (identifier) @table
-    index: (property_identifier) @method)
-    parameters: (parameters) @params
-    body: (block) @body)
-    (#eq? @table "unit_test_functions")
-    (#match? @method "^test_")
+  name: (method_index_expression
+    table: (identifier) @table_name
+    method: (identifier) @test_name)
+  (#eq? @table_name "unit_test_functions"))
 
   ]]
 
