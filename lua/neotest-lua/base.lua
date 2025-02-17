@@ -81,12 +81,13 @@ function M.get_python_command(root)
 end
 
 M.treesitter_queries = [[
-    ;; match unit_test_functions
     (function_declaration
-        name: (method_index_expression
-            table: (identifier) @table_name
-            method: (identifier) @test_name)
-      (#eq? @table_name "unit_test_functions"))
+    name: (method_index_expression
+        table: (identifier) @table.name
+        method: (identifier) @test.name)
+      (#eq? @table.name "unit_test_functions")
+    )
+    @test.definition
   ]]
 
     --   ;; Match undecorated functions
