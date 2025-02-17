@@ -11,6 +11,13 @@ function M.is_test_file(file_path)
   end
   local elems = vim.split(file_path, Path.path.sep)
   local file_name = elems[#elems]
+
+  -- file_path must contain ptest
+  if not file_path:find("ptest") then
+      return false
+  end
+
+
   return vim.startswith(file_name, "test_") or vim.endswith(file_name, "_test.lua")
 end
 
