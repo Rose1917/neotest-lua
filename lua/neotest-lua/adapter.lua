@@ -19,33 +19,42 @@ return function(config)
   ---@param stream_path string
   ---@param runner string
   ---@return string[]
-  local function build_script_args(run_args, results_path, stream_path, runner)
-    local script_args = {
-      "--results-file",
-      results_path,
-      "--stream-file",
-      stream_path,
-      "--runner",
-      runner,
-    }
-
-    if config.pytest_discovery then
-      table.insert(script_args, "--emit-parameterized-ids")
-    end
-
+  local function build_script_args(run_args, runner, user_args)
+    local script_args = {}
     local position = run_args.tree:data()
-
-    table.insert(script_args, "--")
-
-    vim.list_extend(script_args, config.get_args(runner, position, run_args.strategy))
 
     if run_args.extra_args then
       vim.list_extend(script_args, run_args.extra_args)
     end
 
-    if position then
-      table.insert(script_args, position.id)
+    -- split by filename::test_case
+    local relative_path
+    if position and position.id then
+        local parts = vim.split(position.id, "::")
+        if #parts == 2 then
+            table.insert(script_args, "--file")
+            relative_path = (parts[1]):match("bin/(.*)")
+            if not relative_path then
+                error(string.format("invalid path:%s", parts[1]))
+                return 
+            end
+
+            table.insert(script_args, relative_path)
+            table.insert(script_args, "--case")
+            table.insert(script_args, parts[2])
+        end
     end
+
+    -- read server_port.txt
+    local user_args = base.parse_args(user_args, {server_port_path = true})
+    local port = base.get_server_port(user_args.server_port_path, relative_path)
+    if not port then
+        error(string.format("parse port failed:please check the server_port.txt file:%s, module is:%s", user_args.server_port_path, relative_path))
+        return 
+    end
+
+    table.insert(script_args, "--port")
+    table.insert(script_args, port)
 
     return script_args
   end
@@ -61,17 +70,13 @@ return function(config)
     discover_positions = function(path)
       local root = base.get_root(path) or vim.loop.cwd() or ""
 
-      local python_command = config.get_python_command(root)
-      local runner = config.get_runner(python_command)
+      local lua_command = base.get_lua_command(root)
+      -- local runner = config.get_runner(python_command)
 
-      print("Discovering positions", path, runner)
+      -- 不需要namespace. 后续如果发现测试太复杂，再酌情加上
       local positions = lib.treesitter.parse_positions(path, base.treesitter_queries, {
-        require_namespaces = runner == "unittest",
+        require_namespaces = false,
       })
-
-      if runner == "pytest" and config.pytest_discovery then
-        pytest.augment_positions(python_command, base.get_script_path(), path, positions, root)
-      end
 
       return positions
     end,
@@ -79,29 +84,31 @@ return function(config)
     ---@return neotest.RunSpec
     build_spec = function(args)
       local position = args.tree:data()
-
       local root = base.get_root(position.path) or vim.loop.cwd() or ""
-
-      local python_command = config.get_python_command(root)
-      local runner = config.get_runner(python_command)
+      local lua_command = base.get_lua_command(root)
 
       local results_path = nio.fn.tempname()
       local stream_path = nio.fn.tempname()
-      lib.files.write(stream_path, "")
 
+      lib.files.write(stream_path, "")
       local stream_data, stop_stream = lib.files.stream_lines(stream_path)
 
-      local script_args = build_script_args(args, results_path, stream_path, runner)
+      local script_args = build_script_args(args, runner, config.get_args())
       local script_path = base.get_script_path()
 
-      local strategy_config
-      if args.strategy == "dap" then
-        strategy_config =
-          base.create_dap_config(python_command, script_path, script_args, config.dap_args)
-      end
+      io.open('log.txt', 'a'):write(vim.inspect(config.get_args()) .. '\n')
+
+      -- bender的debug工具可以考慮注入
+
+      -- local strategy_config
+      -- if args.strategy == "dap" then
+      --   strategy_config =
+      --     base.create_dap_config(python_command, script_path, script_args, config.dap_args)
+      -- end
+
       ---@type neotest.RunSpec
       return {
-        command = vim.iter({ python_command, script_path, script_args }):flatten():totable(),
+        command = vim.iter({ lua_command, script_path, script_args }):flatten():totable(),
         context = {
           results_path = results_path,
           stop_stream = stop_stream,

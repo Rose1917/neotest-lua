@@ -12,11 +12,10 @@ function M.is_test_file(file_path)
   local elems = vim.split(file_path, Path.path.sep)
   local file_name = elems[#elems]
 
-  -- file_path must contain ptest
-  if not file_path:find("ptest") then
-      return false
+  -- file content must contains unit_test_functions
+  if lib.process.run(vim.iter({ "grep", "-q", "unit_test_functions", file_path }):flatten():totable()) ~= 0 then
+    return false
   end
-
 
   return vim.startswith(file_name, "test_") or vim.endswith(file_name, "_test.lua")
 end
@@ -87,6 +86,60 @@ function M.get_python_command(root)
   return python_command_mem[root]
 end
 
+function M.get_lua_command()
+  return { nio.fn.exepath("lua") or "lua" }
+end
+
+function M.parse_args(args, allowed_keys)
+    local ret = {}
+    local skip = false
+    for i = 1, #args do
+        if skip then
+            skip = false
+            goto continue
+        end
+
+        if args[i]:sub(1, 2) == "--" then
+            local key = args[i]:sub(3)
+            if not allowed_keys[key] then
+                skip = true
+            end
+            ret[key] = args[i + 1]
+            skip = true
+        end
+
+        ::continue::
+    end
+
+    return ret
+end
+
+---@param server_port_path string
+---@param relative_path string
+---@return number|nil
+
+port_mem = {}
+function M.get_server_port(server_port_path, relative_path)
+    if not server_port_path then
+        return
+    end
+
+    -- the file has many lines, each line has format module:port
+    if not port_mem[server_port_path] then
+        local lines = lib.files.read_lines(Path:new(server_port_path):expand())
+        for _, line in ipairs(lines) do
+            local parts = vim.split(line, ":")
+            if #parts == 2 then
+                port_mem[parts[1]] = parts[2]
+            end
+        end
+    end
+
+    -- extract module from relative_path
+    local module = relative_path:match("([^/]+)") or "lobby"
+    return port_mem[module]
+end
+
 M.treesitter_queries = [[
     (function_declaration
     name: (method_index_expression
@@ -131,14 +184,12 @@ M.get_root =
 
 ---@return string
 function M.get_script_path()
-  local paths = vim.api.nvim_get_runtime_file("neotest.py", true)
+  local paths = vim.api.nvim_get_runtime_file("neotest-lua.lua", true)
   for _, path in ipairs(paths) do
-    if vim.endswith(path, ("neotest-python%sneotest.py"):format(lib.files.sep)) then
-      return path
-    end
+    return path
   end
 
-  error("neotest.py not found")
+  error(debug.traceback("neotest-lua.lua not found"))
 end
 
 function M.create_dap_config(python_path, script_path, script_args, dap_args)
