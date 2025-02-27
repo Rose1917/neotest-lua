@@ -13,11 +13,11 @@ function M.is_test_file(file_path)
   local file_name = elems[#elems]
 
   -- file content must contains unit_test_functions
-  if lib.process.run(vim.iter({ "grep", "-q", "unit_test_functions", file_path }):flatten():totable()) ~= 0 then
-    return false
-  end
+  -- if lib.process.run(vim.iter({ "grep", "-q", "unit_test_functions", file_path }):flatten():totable()) ~= 0 then
+  --   return false
+  -- end
 
-  return vim.startswith(file_name, "test_") or vim.endswith(file_name, "_test.lua")
+  return vim.startswith(file_name, "test_") and vim.endswith(file_name, ".lua")
 end
 
 M.module_exists = function(module, python_command)
@@ -119,7 +119,7 @@ end
 ---@return number|nil
 
 port_mem = {}
-function M.get_server_port(server_port_path, relative_path)
+function M.get_server_port(server_port_path, full_file_path)
     if not server_port_path then
         return
     end
@@ -135,9 +135,21 @@ function M.get_server_port(server_port_path, relative_path)
         end
     end
 
-    -- extract module from relative_path
-    local module = relative_path:match("([^/]+)") or "lobby"
-    return port_mem[module]
+    -- TODO:extract module from relative_path
+    -- 这里应该做成可定制的
+    local patterns = {
+        ".*ptest/cases/([^/]+)",
+        ".*bin/([^/]+).*",
+    }
+
+    for _, pattern in ipairs(patterns) do
+        local module = full_file_path:match(pattern)
+        if module then
+            return port_mem[module], module
+        end
+    end
+
+    error("module not found".. full_file_path)
 end
 
 M.treesitter_queries = [[
@@ -180,13 +192,15 @@ M.treesitter_queries = [[
 
 
 M.get_root =
-    lib.files.match_root_pattern("pyproject.toml", "setup.cfg", "mypy.ini", "pytest.ini", "setup.py", "luahelper.json")
+    lib.files.match_root_pattern("ptest", "luahelper.json")
+    -- lib.files.match_root_pattern("ptest", "pyproject.toml", "setup.cfg", "mypy.ini", "pytest.ini", "setup.py", "luahelper.json")
 
 ---@return string
 function M.get_script_path()
   local paths = vim.api.nvim_get_runtime_file("neotest-lua.lua", true)
   for _, path in ipairs(paths) do
-    return path
+      -- return dir of path
+    return path, Path:new(path):parent().filename
   end
 
   error(debug.traceback("neotest-lua.lua not found"))
