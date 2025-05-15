@@ -1,3 +1,4 @@
+log_to_console = false
 local logger = {
 
 }
@@ -22,7 +23,9 @@ function log(cate, fmt, ...)
 
     local time = os.date("%Y-%m-%d %H:%M:%S")
     local msg = string.format(fmt, ...)
-    print(time .. " [" .. cate .. "] " .. "[" .. filename .. ":" .. tostring(line) .. "]:" .. msg .. '\n')
+    if log_to_console then
+        print(time .. " [" .. cate .. "] " .. "[" .. filename .. ":" .. tostring(line) .. "]:" .. msg)
+    end
     logger.log_file:write(time .. " [" .. cate .. "] " .. "[" .. filename .. "]:" .. tostring(line) .. ":" .. msg .. '\n')
     logger.log_file:flush()
 end
