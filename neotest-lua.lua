@@ -10,7 +10,7 @@ local json = require("json")
 
 log_path = "/tmp/neotest.log"
 log_file = io.open(log_path, "w")
-print_to_console = true
+print_to_console = false
 enable_color = true
 
 
